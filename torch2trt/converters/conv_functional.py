@@ -23,7 +23,7 @@ def convert_Conv_trt7_functional(ctx):
     if not isinstance(kernel_size, tuple):
         kernel_size = (kernel_size, ) * input_dim
 
-    if not isinstance(stride, tuple):
+    if not isinstance(stride, tuple) and not isinstance(stride, list):
         stride = (stride, ) * input_dim
 
     if not isinstance(padding, tuple):
