@@ -541,7 +541,6 @@ class TRTModule(torch.nn.Module):
         self.output_names = state_dict[prefix + "output_names"]
 
     def forward(self, *inputs):
-        batch_size = inputs[0].shape[0]
         bindings = [None] * (len(self.input_names) + len(self.output_names))
 
         for i, input_name in enumerate(self.input_names):
@@ -562,8 +561,8 @@ class TRTModule(torch.nn.Module):
             bindings[idx] = output.data_ptr()
 
 
-        self.context.execute_async(
-            batch_size, bindings, torch.cuda.current_stream().cuda_stream
+        self.context.execute_async_v2(
+            bindings, torch.cuda.current_stream().cuda_stream
         )
 
         outputs = tuple(outputs)
@@ -596,6 +595,8 @@ def torch2trt(module,
               dla_core=0,
               gpu_fallback=True,
               device_types={},
+              dynamic_axes={},
+              dynamic_shapes={},
               **kwargs):
 
     # capture arguments to provide to context
@@ -628,7 +629,7 @@ def torch2trt(module,
     if use_onnx:
 
         f = io.BytesIO()
-        torch.onnx.export(module, inputs, f, input_names=input_names, output_names=output_names)
+        torch.onnx.export(module, inputs, f, input_names=input_names, output_names=output_names, dynamic_axes=dynamic_axes)
         f.seek(0)
         onnx_bytes = f.read()
         network = builder.create_network(1 << int(trt.NetworkDefinitionCreationFlag.EXPLICIT_BATCH))
@@ -679,6 +680,12 @@ def torch2trt(module,
                 inputs, int8_calib_dataset, batch_size=int8_calib_batch_size, algorithm=int8_calib_algorithm
             )
             config.int8_calibrator = calibrator
+
+    profile = builder.create_optimization_profile()
+    for binding_name, dynamic_shape in dynamic_shapes.items():
+        min_shape, opt_shape, max_shape = dynamic_shape
+        profile.set_shape(binding_name, min_shape, opt_shape, max_shape)
+    config.add_optimization_profile(profile)
 
     engine = builder.build_engine(network, config)
 
