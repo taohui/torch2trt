@@ -24,8 +24,8 @@ print(x.shape)
 #x = torch.ones((1, 3, 300, 300)).cuda()
 
 # convert to TensorRT feeding sample data as input
-#model_trt = torch2trt(model, [x], max_batch_size=64, fp16_mode=True, max_workspace_size=1<<31, use_onnx=True, dynamic_axes={"input_0":[0], "output_0":[0]}, dynamic_shapes={"input_0":([1, 3, 300, 300], [32, 3, 300, 300], [64, 3, 300, 300])})
-#torch.save(model_trt.state_dict(), 'efficientnet_trt_onnx.pth')
+model_trt = torch2trt(model, [x], max_batch_size=64, fp16_mode=True, max_workspace_size=1<<31, use_onnx=True, dynamic_axes={"input_0":[0], "output_0":[0]}, dynamic_shapes={"input_0":([1, 3, 300, 300], [32, 3, 300, 300], [64, 3, 300, 300])})
+torch.save(model_trt.state_dict(), 'efficientnet_trt_onnx.pth')
 
 model_trt = TRTModule()
 
